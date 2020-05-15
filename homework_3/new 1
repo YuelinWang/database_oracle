@@ -1,0 +1,352 @@
+//需要修改的地方
+//9-改成自己名	253这里需要去c盘建立一个文件，用自己的名字
+
+
+sqlplus /nolog
+conn /as sysdba
+CREATE USER human IDENTIFIED BY orcl DEFAULT TABLESPACE USERS;
+GRANT CONNECT,RESOURCE,CREATE VIEW TO human;
+conn human/orcl@wangyuelin
+set sqlprompt "_user'@'_connect_identifier sql>"
+
+一
+1.
+create table regions
+(region_id NUMBER PRIMARY KEY,
+region_name VARCHAR2(25)
+)
+tablespace users;
+
+describe regions;
+
+2.
+create table countries
+(country_id char(2) primary key,
+country_name varchar2(40),
+region_id number references regions(region_id)
+)
+organization index
+tablespace users;
+
+describe countries;
+
+3.
+create table locations 
+(location_id number(4) primary key,
+street_address varchar2(40),
+postal_code varchar2(12),
+city varchar2(30) not null,
+state_province varchar2(25),
+country_id char(3) references countries(country_id)) 
+tablespace users;
+
+describe locations;
+
+4.
+create table departments 
+(department_id number(4) primary key,
+department_name varchar2(30) not null,
+manager_id number(6),
+location_id number(4) references locations(location_id)) 
+tablespace users;
+
+describe departments;
+
+5.
+create table jobs 
+(job_id varchar2(10) primary key,
+job_title varchar2(35) not null,
+min_salary number(6),
+max_salary number(6)) 
+tablespace users;
+
+describe jobs;
+
+6.
+create table employees 
+( employee_id number(6) primary key,
+first_name varchar2(20),
+last_name varchar2(25) not null,
+email varchar2(25) not null unique,
+phone_number varchar2(20),
+hire_date date not null,
+job_id varchar2(20) not null references jobs(job_id),
+salary number(8,2) check (salary>0),
+commission_pct number(2,2),
+manager_id number(6),
+department_id number(4) references departments(department_id)) 
+tablespace users;
+
+describe employees;
+
+7.
+create table job_history 
+(employee_id number(6) primary key,
+start_date date not null,
+end_date date not null,
+job_id varchar2(10) not null,
+department_id number(4) references departments(department_id),
+constraint jhist_date_interval check(end_date>start_date)
+) 
+tablespace users;
+
+describe job_history;
+
+8.
+create table sal_grades
+(grade number(2) primary key,
+min_salary number(6) not null,
+max_salary number(6) not null
+)
+tablespace users;
+
+describe sal_grades;
+
+9.
+create table users
+(user_id number(2) primary key,
+user_name char(20),
+password varchar2(20) not null
+)
+tablespace users;
+
+describe users;
+
+二
+索引
+1.
+create index EMP_DEPARTMENT_INDX on employees(department_id ) tablespace users;
+
+2.
+Create index EMP_JOB_INDX on employees(job_id) tablespace users;
+
+3.
+Create index EMP_MANAGER_INDX on employees(manager_id) tablespace users;
+
+序列
+1.
+Create sequence EMPLOYEE_SEQ start with 100 increment by 1 nocache nocycle;
+
+2.
+Create sequence DEPARTMENT_SET start with 10 increment by 10 MAXVALUE 9990 nocache nocycle;
+
+3.
+Create sequence LOCATIONS_SEQ start with 1000 increment by 100 MAXVALUE 9990 nocache nocycle;
+
+视图
+1.
+create or replace view EMP_DETAILS_VIEW
+(employee_id,job_id)
+as select e.employee_id,e.job_id
+from employees e
+with read only;
+
+2.
+create or replace view DEPT_STAT_VIEW
+(department_id,department_name)
+as select d. department_id,d. department_name
+from departments d
+with read only;
+
+2.按下列表结构利用SQL语句完成如下工作
+	1.
+create table exer_class
+(cno number(2) primary key,
+cname varchar2(20),
+num number(3)
+)
+tablespace users;
+
+create table exer_student
+(sno number(4) primary key,
+sname varchar2(10),
+sage number,
+sex char(2),
+cno number(2)
+)
+tablespace users;
+
+	2.
+alter table exer_student add check(sage between 0 and 100);
+
+	3.
+alter table exer_student add constraint ck_stu check(sex='M' or sex='F') modify sex default 'M';
+
+	4.
+create unique index ind_cname on exer_class(cname);
+
+	5.
+create or replace view s_c_view
+(cno1,cname,num,sno,sname,sage,sex,con2)
+as select
+c.cno,c.cname,c.num,s.sno,s.sname,s.sage,s.sex,s.cno
+from exer_class c,exer_student s
+with read only;
+
+	6.
+create sequence seq start with 100000001 increment by 1 nocache nocycle;
+
+	7.
+select tablespace_name from user_tablespaces;
+
+create table student_range
+(sno number(4) primary key,
+sname varchar2(10),sage number,
+sex char(2),cno number(2))
+partition by range(sage)
+(partition part1 values less than(20) tablespace example,
+partition part2 values less than(30) tablespace orcltbs1,
+partition part3 values less than(maxvalue) tablespace orcltbs2
+);
+
+	8.
+create table exer_student_list
+(
+sno number(4) primary key,
+sname varchar2(10),
+sage number,
+sex char(2),
+cno number(2)
+)
+partition by list(sex)
+(
+partition male values ('m') tablespace orcltbs1,
+partition female values ('f') tablespace orcltbs2
+);
+
+sqlplus /nolog
+conn scott/tiger@wangyuelin
+set sqlprompt "_user'@'_connect_identifier sql>"
+
+3.利用scott用户在scott模式下完成如下sql操作：
+	1.
+desc emp
+
+select * from emp;
+	2.
+select empno,ename,job,sal*12 "new salary" from emp;
+	3.
+select ename name,sal salary,sal+nvl(comm,0) total_salary from emp;
+	4.
+select ename,sal from emp where sal>2850;
+	5.
+select ename,sal from emp where sal>1500and sal<2850;
+	6.
+select ename,sal as avg_wage from emp where sal<1500 or sal>2850 order by avg_wage;
+	7.
+select ename,job,hiredate from emp where deptno=10
+or deptno=30 order by hiredate desc;
+	8.
+select ename from emp where ename like '_A%';
+	9.
+edit
+
+select ename,job,sal from emp where job
+in ('CLERK','ANSLYS')and sal not in (1000,3000,5000)
+
+/
+	10
+select sysdate from dual;
+	11
+select empno,ename sal,1.5*(sal+nvl(comm,0)) "new salary" from emp;
+
+save c:\wyl\les03_02.sql;
+	12
+@c:\wyl\les03_02.sql;
+	13
+select ename,hiredate,to_char(next_day(add_months(hiredate,6),1),'yyyy-mm-dd')day from emp;
+	14
+select ename,hiredate,trunc(months_between(sysdate,hiredate))
+months_worked from emp order by months_worked desc;
+	15
+select empno,initcap(ename),length(ename) from emp;
+	16
+select ename,job,deptno from emp;
+	17
+select distinct emp.job,emp.deptno,dname from emp,dept
+where emp.deptno =dept.deptno and emp.deptno=30;
+	18
+select ename,dname,loc from emp,dept where comm is not null;
+	19
+select ename,dname from emp,dept where ename like '%A%';
+	20
+select ename,emp.job,emp.deptno,dname from emp,dept where loc='DALLAS';
+	21
+select emp.empno id,emp.ename
+name,emp.mgr mgr_id,m.ename mgr_name
+from emp,emp m where emp.mgr = m.mgr;
+	22
+select emp.empno id,emp.mgr mgr_id,m.ename
+mgr_name from emp left join emp m on emp.mgr=m.mgr;
+	23
+select max(sal) maxsal,min(sal) minsal,
+round(avg(sal)) avgsal,sum(sal) sumsal from emp;
+	24
+select job,max(sal),min(sal),
+round(avg(sal)),sum(sal)
+from emp group by job;
+	25
+select distinct job,count(job) from emp group by job;
+	26
+select ename from emp where empno not in (select distinct mgr
+from emp where mgr is not null);
+	27
+select max(sal)-min(sal) difference from emp group by job;
+	28
+select ename,hiredate from emp where deptno in
+(select deptno from emp where ename='BLAKE')
+and ename <> 'BLAKE';
+	29
+select empno,ename,sal from emp where
+sal>(select avg(sal)from emp);
+	30
+ed;
+
+select deptno,empno,ename from emp where
+deptno in (select deptno from emp where ename like '%T%')
+
+/
+	31
+select empno,ename,job,deptno from emp
+where deptno=(select deptno from
+dept where loc='DALLAS');
+	32
+select empno,ename,sal from emp where
+mgr=(select empno from emp where
+ename='KING');
+	33
+select empno,ename,deptno,sal,job
+from emp where (deptno,sal) in
+(select deptno,sal from emp where comm>0);
+	34
+select empno,ename,deptno,sal,job from emp
+where (deptno,sal) in (select deptno,sal from emp
+where deptno in (select deptno from dept
+where loc='DALLAS'));
+	35
+select ename,sal,hiredate from emp where (sal,nvl(comm,0))
+=(select sal,nvl(comm,0) from emp where ename='SCOTT') and ename <>'SCOTT';
+	36
+insert into dept(deptno,dname,loc) values (50,'IT','SHENYANG');
+
+insert into dept(deptno,dname,loc) values (60,'HR','DALIAN');
+	37
+savepoint beforeup;
+	38
+update dept set loc='BEIJING' where deptno=60;
+	39
+savepoint afterup;
+	40
+delete from dept where deptno=50 or deptno=60;
+	41
+rollback to afterup;
+
+select * from dept;
+	42
+rollback to beforeup;
+
+select * from dept;
+	43
+rollback;
+
+select * from dept;
